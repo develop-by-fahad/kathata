@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "product": {
+      "title": "Product",
+      "description": "Artisanal product in the shop",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "string" },
+        "oldPrice": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "newCollection": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "price", "category", "images"]
+    },
+    "category": {
+      "title": "Category",
+      "description": "Product category",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "galleryImage": {
+      "title": "Gallery Image",
+      "description": "Image for the infinite marquee gallery",
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["url"]
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Global app settings",
+      "type": "object",
+      "properties": {
+        "bannerText": { "type": "string" },
+        "bannerSpeed": { "type": "number" }
+      }
+    },
+    "coupon": {
+      "title": "Coupon",
+      "description": "Discount coupon",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "discountType": { "type": "string", "enum": ["fixed", "percentage"] },
+        "discountValue": { "type": "number" },
+        "appliesTo": { "type": "string", "enum": ["all", "category", "product"] },
+        "targetId": { "type": "string" }
+      },
+      "required": ["id", "code", "discountType", "discountValue", "appliesTo"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "product",
+      "description": "List of products"
+    },
+    "/categories/{categoryId}": {
+      "schema": "category",
+      "description": "List of categories"
+    },
+    "/gallery/{imageId}": {
+      "schema": "galleryImage",
+      "description": "Gallery images"
+    },
+    "/config/general": {
+      "schema": "settings",
+      "description": "Global configuration"
+    },
+    "/coupons/{couponId}": {
+      "schema": "coupon",
+      "description": "Available coupons"
+    }
+  }
+}
