@@ -1299,12 +1299,12 @@ export default function App() {
   };
 
   const onSaveCategory = async (old: string, updated: string) => {
-    const id = updated.toLowerCase().replace(/\s+/g, '-');
+    const id = updated.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     const path = `categories/${id}`;
     try {
       await setDoc(doc(db, 'categories', id), { name: updated });
       if (old && old !== updated) {
-        await deleteDoc(doc(db, 'categories', old.toLowerCase().replace(/\s+/g, '-')));
+        await deleteDoc(doc(db, 'categories', old.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')));
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
@@ -1312,7 +1312,7 @@ export default function App() {
   };
 
   const onDeleteCategory = async (cat: string) => {
-    const id = cat.toLowerCase().replace(/\s+/g, '-');
+    const id = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     const path = `categories/${id}`;
     try {
       await deleteDoc(doc(db, 'categories', id));
@@ -1373,7 +1373,13 @@ export default function App() {
 
       {/* Navbar */}
       <nav className={`fixed left-0 right-0 z-50 transition-all duration-300 px-6 py-4 lg:px-12 ${isScrolled ? 'top-0 bg-white/80 backdrop-blur-md border-b border-black/5' : (bannerText && bannerText.trim() !== '' ? 'top-10' : 'top-0')} bg-transparent`}>
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between relative">
+          {/* Mobile Menu Button - Left */}
+          <button className="lg:hidden p-2 -ml-2" onClick={() => setIsMenuOpen(true)}>
+            <Menu size={20} />
+          </button>
+
+          {/* Desktop Nav - Left */}
           <div className="hidden lg:flex items-center gap-8 text-[11px] uppercase tracking-widest font-medium">
             {NAV_ITEMS.slice(0, 2).map((item) => (
               <a key={item.label} href={item.href} className="hover:opacity-60 transition-opacity">
@@ -1382,16 +1388,18 @@ export default function App() {
             ))}
           </div>
 
-          <a href="#" className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0">
+          {/* Logo - Centered */}
+          <a href="#" className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
             <img 
               src="https://images.pexels.com/photos/37587201/pexels-photo-37587201.jpeg" 
               alt="Kathara Logo" 
-              className="h-10 w-auto object-contain"
+              className="h-8 md:h-10 w-auto object-contain"
               referrerPolicy="no-referrer"
             />
           </a>
 
-          <div className="flex items-center gap-6">
+          {/* Nav Actions - Right */}
+          <div className="flex items-center gap-3 md:gap-6">
             <div className="hidden lg:flex items-center gap-8 text-[11px] uppercase tracking-widest font-medium mr-6">
               {NAV_ITEMS.slice(2).map((item) => (
                 <a key={item.label} href={item.href} className="hover:opacity-60 transition-opacity">
@@ -1399,36 +1407,36 @@ export default function App() {
                 </a>
               ))}
             </div>
+            
             <button 
               onClick={() => {
                 if (!currentUser) login();
                 else if (isAdmin) setIsAdminOpen(true);
                 else alert("Admin access only.");
               }}
-              className={`hover:opacity-60 transition-opacity p-2 ${currentUser && isAdmin ? 'bg-brand-beige/30' : 'bg-black/5'} rounded-full`}
+              className={`hover:opacity-60 transition-opacity p-2 ${currentUser && isAdmin ? 'bg-brand-beige/30' : 'bg-black/5'} rounded-full hidden md:flex`}
               title={currentUser ? (isAdmin ? "Admin Panel" : "Access Denied") : "Login as Admin"}
             >
               {currentUser && isAdmin ? <Settings size={18} strokeWidth={1.5} /> : <UserIcon size={18} strokeWidth={1.5} />}
             </button>
+
             <button 
               onClick={() => setIsSearchOpen(true)}
-              className="hover:opacity-60 transition-opacity"
+              className="hover:opacity-60 transition-opacity p-2"
             >
               <Search size={18} strokeWidth={1.5} />
             </button>
+
             <button 
-              className="relative hover:opacity-60 transition-opacity"
+              className="relative hover:opacity-60 transition-opacity p-2"
               onClick={() => setIsCartOpen(true)}
             >
               <ShoppingBag size={18} strokeWidth={1.5} />
               {cartItems.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-black text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute top-1 right-1 bg-black text-white text-[7px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
                   {cartItems.length}
                 </span>
               )}
-            </button>
-            <button className="lg:hidden" onClick={() => setIsMenuOpen(true)}>
-              <Menu size={20} />
             </button>
           </div>
         </div>
@@ -1749,28 +1757,80 @@ export default function App() {
       {/* Mobile Menu */}
       <AnimatePresence>
         {isMenuOpen && (
-          <motion.div 
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            className="fixed inset-0 z-[60] bg-white flex flex-col p-12"
-          >
-            <button className="absolute top-8 right-8" onClick={() => setIsMenuOpen(false)}>
-              <X size={24} />
-            </button>
-            <div className="flex flex-col gap-8 mt-12">
-              {NAV_ITEMS.map((item) => (
-                <a 
-                  key={item.label} 
-                  href={item.href} 
-                  className="font-serif text-4xl"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.label}
-                </a>
-              ))}
-            </div>
-          </motion.div>
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 z-[150] bg-black/40 backdrop-blur-sm lg:hidden"
+            />
+            <motion.div 
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 left-0 bottom-0 w-full max-w-[320px] z-[160] bg-white flex flex-col lg:hidden shadow-2xl"
+            >
+              <div className="p-8 flex items-center justify-between border-b border-black/5">
+                <img 
+                  src="https://images.pexels.com/photos/37587201/pexels-photo-37587201.jpeg" 
+                  alt="Kathara Logo" 
+                  className="h-8 w-auto object-contain"
+                  referrerPolicy="no-referrer"
+                />
+                <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-black/5 rounded-full transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-8 py-12">
+                <div className="flex flex-col gap-6">
+                  {NAV_ITEMS.map((item, i) => (
+                    <motion.a 
+                      key={item.label} 
+                      href={item.href} 
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + i * 0.05 }}
+                      className="font-serif text-3xl hover:opacity-60 transition-opacity"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {item.label}
+                    </motion.a>
+                  ))}
+                </div>
+
+                <div className="mt-12 pt-12 border-t border-black/5 space-y-6">
+                  <div className="space-y-4">
+                    <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground">Follow Us</p>
+                    <div className="flex gap-4">
+                      <a href="#" className="w-10 h-10 border border-black/10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-all"><Instagram size={18} /></a>
+                      <a href="#" className="w-10 h-10 border border-black/10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-all"><Facebook size={18} /></a>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                  <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground">Internal</p>
+                    <button 
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        if (!currentUser) login();
+                        else if (isAdmin) setIsAdminOpen(true);
+                      }}
+                      className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity"
+                    >
+                      <UserIcon size={16} /> {currentUser ? (isAdmin ? "Admin Control" : "Account") : "Admin Login"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 bg-brand-cream/30 text-center">
+                <p className="text-[10px] uppercase tracking-widest font-medium opacity-40">© 2024 Kathara Artisanal</p>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
