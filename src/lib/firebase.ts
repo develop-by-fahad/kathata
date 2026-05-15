@@ -12,7 +12,9 @@ export const googleProvider = new GoogleAuthProvider();
 export const ADMIN_EMAILS = ['fahadafrn07@gmail.com', 'fsrahat33@gmail.com'];
 
 export const isUserAdmin = (user: User | null) => {
-  return user && user.email && ADMIN_EMAILS.includes(user.email);
+  if (!user || !user.email) return false;
+  const userEmail = user.email.toLowerCase();
+  return ADMIN_EMAILS.some(email => email.toLowerCase() === userEmail);
 };
 
 export async function testConnection() {

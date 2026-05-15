@@ -1030,7 +1030,7 @@ export default function App() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       if (!isUserAdmin(result.user)) {
-        alert("Access Denied: You do not have admin privileges.");
+        alert(`Access Denied: ${result.user.email} does not have admin privileges.`);
         await signOut(auth);
       }
     } catch (error) {
