@@ -9,7 +9,7 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 // Allowed admin emails
-export const ADMIN_EMAILS = ['fahadafran07@gmail.com', 'fsrahat33@gmail.com'];
+export const ADMIN_EMAILS = ['fahadafrn07@gmail.com', 'fsrahat33@gmail.com'];
 
 export const isUserAdmin = (user: User | null) => {
   return user && user.email && ADMIN_EMAILS.includes(user.email);

@@ -1557,23 +1557,57 @@ export default function App() {
                       Proceed to Checkout
                     </button>
                   ) : (
-                    <button 
-                      className="w-full bg-green-600 text-white py-5 rounded-full text-xs uppercase tracking-widest font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
-                      onClick={() => {
-                        if (!checkoutData.name || !checkoutData.phone || !checkoutData.address || !checkoutData.shippingAddress) {
-                          alert('Please fill in all required fields.');
-                          return;
-                        }
-                        // For m.me we just open the chat
-                        window.open(`https://m.me/1027568157116678`, '_blank');
-                        alert('Messenger chat opened! Please send your order details there.');
-                        setCartItems([]);
-                        setIsCartOpen(false);
-                        setIsCheckoutStage(false);
-                      }}
-                    >
-                      Place Order (Messenger)
-                    </button>
+                      <div className="flex flex-col gap-3">
+                        <button 
+                          className="w-full bg-green-600 text-white py-5 rounded-full text-xs uppercase tracking-widest font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2"
+                          onClick={() => {
+                            if (!checkoutData.name || !checkoutData.phone || !checkoutData.address || !checkoutData.shippingAddress) {
+                              alert('Please fill in all required fields.');
+                              return;
+                            }
+
+                            const itemsText = cartItems.map(item => `- ${item.name} (${item.price})`).join('\n');
+                            const message = `*New Order from Kathara*\n\n` +
+                              `*Customer Details:*\n` +
+                              `Name: ${checkoutData.name}\n` +
+                              `Phone: ${checkoutData.phone}\n` +
+                              `Billing Address: ${checkoutData.address}\n` +
+                              `Shipping Address: ${checkoutData.shippingAddress}\n` +
+                              `${checkoutData.email ? `Email: ${checkoutData.email}\n` : ''}\n` +
+                              `*Items:*\n${itemsText}\n\n` +
+                              `*Subtotal:* ৳${cartSubtotal.toLocaleString()}\n` +
+                              `${isCouponApplied ? `*Discount:* -৳${discountAmount.toLocaleString()}\n` : ''}` +
+                              `*Total:* ৳${cartTotal.toLocaleString()}\n\n` +
+                              `Please confirm my order. Thank you!`;
+
+                            const encodedMessage = encodeURIComponent(message);
+                            window.open(`https://wa.me/8801746692155?text=${encodedMessage}`, '_blank');
+                            
+                            setCartItems([]);
+                            setIsCartOpen(false);
+                            setIsCheckoutStage(false);
+                          }}
+                        >
+                          <MessageCircle size={18} /> Place Order (WhatsApp)
+                        </button>
+                        <button 
+                          className="w-full bg-blue-600 text-white py-5 rounded-full text-xs uppercase tracking-widest font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
+                          onClick={() => {
+                            if (!checkoutData.name || !checkoutData.phone || !checkoutData.address || !checkoutData.shippingAddress) {
+                              alert('Please fill in all required fields.');
+                              return;
+                            }
+                            // For m.me we just open the chat
+                            window.open(`https://m.me/1027568157116678`, '_blank');
+                            alert('Messenger chat opened! Please send your order details there.');
+                            setCartItems([]);
+                            setIsCartOpen(false);
+                            setIsCheckoutStage(false);
+                          }}
+                        >
+                          Place Order (Messenger)
+                        </button>
+                      </div>
                   )}
                 </div>
               )}
