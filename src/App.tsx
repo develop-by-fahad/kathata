@@ -116,43 +116,82 @@ const SectionTitle = ({ title, subtitle }: { title: string; subtitle?: string })
   </div>
 );
 
-const ImageSlider = ({ images }: { images: string[] }) => {
+const ImageSlider = ({ images, onImageClick }: { images: string[]; onImageClick?: (index: number) => void }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
 
   const next = () => setCurrentIndex((prev) => (prev + 1) % images.length);
   const prev = () => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
 
+  const onDragEnd = (_: any, info: { offset: { x: number }; velocity: { x: number } }) => {
+    if (info.offset.x < -50) {
+      next();
+    } else if (info.offset.x > 50) {
+      prev();
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setMousePos({ x, y });
+  };
+
   if (!images || images.length === 0) return <div className="w-full h-full bg-brand-beige" />;
 
   return (
-    <div className="relative group/slider w-full h-full">
+    <div className="relative group/slider w-full h-full overflow-hidden touch-pan-y">
       <AnimatePresence mode="wait">
-        <motion.img
+        <motion.div
           key={currentIndex}
-          src={images[currentIndex]}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="w-full h-full object-cover"
-          referrerPolicy="no-referrer"
-        />
+          className="w-full h-full relative cursor-zoom-in overflow-hidden"
+          onMouseMove={handleMouseMove}
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+          onClick={(e) => {
+            // Only trigger click if it wasn't a significant drag
+            onImageClick?.(currentIndex);
+          }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={onDragEnd}
+        >
+          <motion.img
+            src={images[currentIndex]}
+            style={{
+              transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
+            }}
+            animate={{
+              scale: isHovering ? 1.5 : 1,
+            }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="w-full h-full object-cover pointer-events-none"
+            referrerPolicy="no-referrer"
+          />
+        </motion.div>
       </AnimatePresence>
       
       {images.length > 1 && (
         <>
           <button 
-            onClick={prev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full opacity-0 group-hover/slider:opacity-100 transition-opacity"
+            onClick={(e) => { e.stopPropagation(); prev(); }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full opacity-0 group-hover/slider:opacity-100 transition-opacity z-10"
           >
             <ChevronLeft size={20} />
           </button>
           <button 
-            onClick={next}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full opacity-0 group-hover/slider:opacity-100 transition-opacity"
+            onClick={(e) => { e.stopPropagation(); next(); }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full opacity-0 group-hover/slider:opacity-100 transition-opacity z-10"
           >
             <ChevronRight size={20} />
           </button>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
             {images.map((_, i) => (
               <div 
                 key={i} 
@@ -163,6 +202,83 @@ const ImageSlider = ({ images }: { images: string[] }) => {
         </>
       )}
     </div>
+  );
+};
+
+const FullscreenViewer = ({ images, initialIndex, onClose }: { images: string[]; initialIndex: number; onClose: () => void }) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+  const next = () => setCurrentIndex((prev) => (prev + 1) % images.length);
+  const prev = () => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+
+  const onDragEnd = (_: any, info: { offset: { x: number }; velocity: { x: number } }) => {
+    if (info.offset.x < -50) {
+      next();
+    } else if (info.offset.x > 50) {
+      prev();
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[300] bg-black flex flex-col"
+    >
+      <div className="flex justify-end p-6">
+        <button onClick={onClose} className="text-white hover:opacity-60 transition-opacity bg-white/10 p-3 rounded-full backdrop-blur-md">
+          <X size={32} strokeWidth={1.5} />
+        </button>
+      </div>
+      
+      <div className="flex-1 relative flex items-center justify-center p-4 md:p-12 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={currentIndex}
+            src={images[currentIndex]}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={onDragEnd}
+            className="max-w-full max-h-full object-contain cursor-grab active:cursor-grabbing"
+            referrerPolicy="no-referrer"
+          />
+        </AnimatePresence>
+
+        {images.length > 1 && (
+          <>
+            <button 
+              onClick={prev}
+              className="absolute left-6 md:left-12 p-4 bg-white/10 text-white backdrop-blur-md rounded-full hover:bg-white/20 transition-all z-10"
+            >
+              <ChevronLeft size={32} />
+            </button>
+            <button 
+              onClick={next}
+              className="absolute right-6 md:right-12 p-4 bg-white/10 text-white backdrop-blur-md rounded-full hover:bg-white/20 transition-all z-10"
+            >
+              <ChevronRight size={32} />
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="p-8 flex justify-center gap-3 overflow-x-auto no-scrollbar">
+        {images.map((img, i) => (
+          <button 
+            key={i} 
+            onClick={() => setCurrentIndex(i)}
+            className={`w-16 h-20 md:w-24 md:h-32 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${i === currentIndex ? 'border-white scale-105' : 'border-transparent opacity-40 hover:opacity-100'}`}
+          >
+            <img src={img} className="w-full h-full object-cover" />
+          </button>
+        ))}
+      </div>
+    </motion.div>
   );
 };
 
@@ -244,6 +360,8 @@ const ProductCard = ({
 };
 
 const ProductDetailsModal = ({ product, onClose, onAction, coupons }: { product: Product, onClose: () => void, onAction: (p: Product) => void, coupons: Coupon[] }) => {
+  const [fullscreenImageIndex, setFullscreenImageIndex] = useState<number | null>(null);
+  
   const applicableCoupon = coupons.find(c => 
     (c.appliesTo === 'all') || 
     (c.appliesTo === 'category' && c.targetId === product.category) || 
@@ -251,29 +369,30 @@ const ProductDetailsModal = ({ product, onClose, onAction, coupons }: { product:
   );
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-    >
+    <>
       <motion.div 
-        initial={{ y: 50, opacity: 0, scale: 0.95 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: 50, opacity: 0, scale: 0.95 }}
-        className="bg-white max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-3xl grid grid-cols-1 md:grid-cols-2 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
       >
-        <div className="relative aspect-[4/5] md:aspect-auto">
-          <ImageSlider images={product.images} />
-          <button 
-            onClick={onClose}
-            className="absolute top-6 left-6 p-3 bg-white/80 backdrop-blur-md rounded-full md:hidden z-10"
-          >
-            <X size={20} />
-          </button>
-        </div>
+        <motion.div 
+          initial={{ y: 50, opacity: 0, scale: 0.95 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: 50, opacity: 0, scale: 0.95 }}
+          className="bg-white max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-3xl grid grid-cols-1 md:grid-cols-2 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="relative aspect-[4/5] md:aspect-auto h-full">
+            <ImageSlider images={product.images} onImageClick={setFullscreenImageIndex} />
+            <button 
+              onClick={onClose}
+              className="absolute top-6 left-6 p-3 bg-white/80 backdrop-blur-md rounded-full md:hidden z-10"
+            >
+              <X size={20} />
+            </button>
+          </div>
         
         <div className="p-8 md:p-12 flex flex-col justify-center">
           <div className="flex justify-between items-start mb-4">
@@ -340,6 +459,17 @@ const ProductDetailsModal = ({ product, onClose, onAction, coupons }: { product:
         </div>
       </motion.div>
     </motion.div>
+
+      <AnimatePresence>
+        {fullscreenImageIndex !== null && (
+          <FullscreenViewer 
+            images={product.images} 
+            initialIndex={fullscreenImageIndex} 
+            onClose={() => setFullscreenImageIndex(null)} 
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
