@@ -1835,12 +1835,12 @@ export default function App() {
       </AnimatePresence>
 
       {/* Hero Section */}
-      <header className="relative h-[85vh] md:h-screen flex items-center justify-center overflow-hidden pt-20">
+      <header className="relative h-[65vh] md:h-screen flex items-center justify-center overflow-hidden pt-20">
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.pexels.com/photos/37589851/pexels-photo-37589851.png" 
             alt="Kathara Hero"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-[center_30%] md:object-center"
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-black/10"></div>
@@ -1851,7 +1851,7 @@ export default function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-white text-xs md:text-sm uppercase tracking-[0.5em] font-medium pl-0 ml-0 pb-0 mr-0 mb-[300px]"
+            className="text-white text-xs md:text-sm uppercase tracking-[0.5em] font-medium mb-[250px]"
           >
             Curated Artisanal Crafts
           </motion.p>
@@ -1862,7 +1862,7 @@ export default function App() {
           >
             <a 
               href="#products" 
-              className="inline-flex items-center gap-4 bg-white text-black px-12 py-6 rounded-full text-[10px] md:text-xs uppercase tracking-[0.3em] font-bold hover:bg-black hover:text-white transition-all transform hover:-translate-y-1 shadow-2xl"
+              className="inline-flex items-center gap-4 bg-white text-black pl-[50px] pr-12 py-6 rounded-full text-[10px] md:text-xs uppercase tracking-[0.3em] font-bold hover:bg-black hover:text-white transition-all transform hover:-translate-y-1 shadow-2xl mb-[35px]"
             >
               Explore Collection <ArrowRight size={18} />
             </a>
