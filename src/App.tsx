@@ -21,7 +21,8 @@ import {
   Edit2,
   Tag,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  Music2
 } from 'lucide-react';
 import { 
   auth, 
@@ -313,7 +314,7 @@ const ProductCard = ({
           referrerPolicy="no-referrer"
         />
         {product.newCollection && (
-          <span className="absolute top-2 left-2 md:top-4 md:left-4 bg-white px-2 md:px-3 py-1 text-[8px] md:text-[10px] uppercase tracking-widest font-bold">New</span>
+          <span className="absolute top-2 right-2 md:top-4 md:right-4 bg-white/90 backdrop-blur-sm px-2 md:px-3 py-1 text-[8px] md:text-[10px] uppercase tracking-widest font-bold shadow-sm z-10 border border-black/5">New</span>
         )}
         <AnimatePresence>
           {isHovered && (
@@ -340,7 +341,7 @@ const ProductCard = ({
             e.stopPropagation();
             alert('Added to wishlist!');
           }}
-          className="absolute top-2 right-2 md:top-4 md:right-4 p-1.5 md:p-2 bg-white/80 backdrop-blur-sm rounded-full md:opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          className="absolute top-2 left-2 md:top-4 md:left-4 p-1.5 md:p-2 bg-white/80 backdrop-blur-sm rounded-full md:opacity-0 group-hover:opacity-100 transition-opacity duration-300"
         >
           <Heart size={14} className="md:w-4 md:h-4" />
         </button>
@@ -697,6 +698,16 @@ const AdminPanel = ({
                       onChange={e => setEditingProduct({...editingProduct, description: e.target.value})}
                       className="w-full p-4 rounded-xl border border-black/5 h-32" 
                     />
+                  </div>
+                  <div className="flex items-center gap-2 pt-2">
+                    <input 
+                      type="checkbox"
+                      id="newCollection"
+                      checked={editingProduct.newCollection || false}
+                      onChange={e => setEditingProduct({...editingProduct, newCollection: e.target.checked})}
+                      className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
+                    />
+                    <label htmlFor="newCollection" className="text-[10px] uppercase tracking-widest font-bold">Mark as "New Product"</label>
                   </div>
                   <div className="flex gap-4">
                     <button type="submit" className="flex-1 bg-black text-white py-4 rounded-xl font-bold uppercase tracking-widest text-[10px]">Save Product</button>
@@ -1193,13 +1204,14 @@ export default function App() {
   }, [isCartOpen, cartItems]);
 
   const filteredProducts = products.filter(p => {
-    const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
+    const matchesCategory = (selectedCategory === 'All') || 
+                           (selectedCategory === 'New Arrivals' ? p.newCollection : p.category === selectedCategory);
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          p.category.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
-  const displayCategories = ['All', ...categories];
+  const displayCategories = ['All', 'New Arrivals', ...categories];
 
   const addToCart = (product: Product) => {
     if (product.price === 'Inquiry') {
@@ -1805,8 +1817,9 @@ export default function App() {
                   <div className="space-y-4">
                     <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground">Follow Us</p>
                     <div className="flex gap-4">
-                      <a href="#" className="w-10 h-10 border border-black/10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-all"><Instagram size={18} /></a>
-                      <a href="#" className="w-10 h-10 border border-black/10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-all"><Facebook size={18} /></a>
+                      <a href="https://tiktok.com/@art.kathara" target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-black/10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-all"><Music2 size={18} /></a>
+                      <a href="https://instagram.com/art.kathara" target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-black/10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-all"><Instagram size={18} /></a>
+                      <a href="https://www.facebook.com/art.kathara" target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-black/10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-all"><Facebook size={18} /></a>
                     </div>
                   </div>
 
@@ -2008,7 +2021,26 @@ export default function App() {
                 We work directly with artisans to create pieces that are not just products, but stories.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-8 mt-12">
+            <div className="flex gap-6 mt-10">
+              <button 
+                onClick={() => {
+                  setSelectedCategory('New Arrivals');
+                  document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="bg-black text-white px-8 py-4 rounded-full text-[10px] uppercase tracking-widest font-bold hover:scale-105 transition-transform"
+              >
+                New Arrivals
+              </button>
+              <button 
+                onClick={() => {
+                  document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="border border-black px-8 py-4 rounded-full text-[10px] uppercase tracking-widest font-bold hover:bg-black hover:text-white transition-all"
+              >
+                Our Story
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-8 mt-16 pt-8 border-t border-black/5">
               <div>
                 <h4 className="font-bold text-2xl mb-1">100%</h4>
                 <p className="text-xs uppercase tracking-widest text-muted-foreground">Handmade</p>
@@ -2071,6 +2103,7 @@ export default function App() {
                 Premium handcrafted products for the conscious individual. Elegance in every stitch.
               </p>
               <div className="flex gap-4">
+                <a href="https://tiktok.com/@art.kathara" target="_blank" rel="noopener noreferrer" className="p-2 bg-brand-beige/30 rounded-full hover:bg-brand-beige transition-colors"><Music2 size={18} /></a>
                 <a href="https://instagram.com/art.kathara" target="_blank" rel="noopener noreferrer" className="p-2 bg-brand-beige/30 rounded-full hover:bg-brand-beige transition-colors"><Instagram size={18} /></a>
                 <a href="https://www.facebook.com/art.kathara" target="_blank" rel="noopener noreferrer" className="p-2 bg-brand-beige/30 rounded-full hover:bg-brand-beige transition-colors"><Facebook size={18} /></a>
                 <a href="https://m.me/1027568157116678" target="_blank" rel="noopener noreferrer" className="p-2 bg-brand-beige/30 rounded-full hover:bg-brand-beige transition-colors"><MessageCircle size={18} /></a>
@@ -2080,10 +2113,10 @@ export default function App() {
             <div>
               <h4 className="text-[10px] uppercase tracking-widest font-bold mb-6">Boutique</h4>
               <ul className="space-y-4 text-sm text-muted-foreground font-light">
-                <li><a href="#" className="hover:text-black transition-colors">New Arrivals</a></li>
-                <li><a href="#" className="hover:text-black transition-colors">Dresses</a></li>
-                <li><a href="#" className="hover:text-black transition-colors">Home Decor</a></li>
-                <li><a href="#" className="hover:text-black transition-colors">Accessories</a></li>
+                <li><button onClick={() => { setSelectedCategory('New Arrivals'); document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-black transition-colors">New Arrivals</button></li>
+                <li><button onClick={() => { setSelectedCategory('Dresses'); document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-black transition-colors">Dresses</button></li>
+                <li><button onClick={() => { setSelectedCategory('Home Decor'); document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-black transition-colors">Home Decor</button></li>
+                <li><button onClick={() => { setSelectedCategory('Accessories'); document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-black transition-colors">Accessories</button></li>
               </ul>
             </div>
 
@@ -2104,18 +2137,24 @@ export default function App() {
                   <MessageCircle size={16} strokeWidth={1.5} />
                   <a href="https://m.me/1027568157116678" target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">Messenger</a>
                 </li>
-                <li className="flex items-center gap-3"><Mail size={16} strokeWidth={1.5} /> hello@kathara.com</li>
+                <li className="flex items-center gap-3">
+                  <Mail size={16} strokeWidth={1.5} /> 
+                  <a href="mailto:art.kathara@gmail.com" className="hover:text-black transition-colors">art.kathara@gmail.com</a>
+                </li>
                 <li className="flex items-center gap-3">
                   <Phone size={16} strokeWidth={1.5} /> 
                   <a href="tel:+8809611409307" className="hover:text-black transition-colors">+880 96114 09307</a>
                 </li>
-                <li className="mt-4 opacity-70">Dhanmondi, Dhaka,<br />Bangladesh</li>
+                <li className="mt-8 text-[10px] uppercase tracking-widest font-bold opacity-60">Made with ❤️ in Bangladesh</li>
               </ul>
             </div>
           </div>
           
           <div className="pt-12 border-t border-black/5 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">© 2026 KATHARA. ALL RIGHTS RESERVED</p>
+            <div className="text-center md:text-left">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">© 2026 KATHARA. ALL RIGHTS RESERVED</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] font-medium opacity-60">Made with ❤️ in Bangladesh</p>
+            </div>
             <div className="flex gap-8 text-[10px] uppercase tracking-widest font-bold">
               <a href="#" className="hover:opacity-50 transition-opacity">Visa</a>
               <a href="#" className="hover:opacity-50 transition-opacity">Mastercard</a>
