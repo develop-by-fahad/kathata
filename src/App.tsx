@@ -56,6 +56,9 @@ import { Product, Coupon } from './types';
 const ScrollingBanner = ({ html, speed = 20 }: { html: string; speed?: number }) => {
   if (!html || html.trim() === '') return null;
   
+  // Split the messages by the custom separator
+  const messages = html.split(' | ').map(m => m.trim()).filter(Boolean);
+  
   return (
     <div 
       className="bg-black text-white text-[9px] md:text-[11px] uppercase tracking-[0.3em] py-3 h-10 relative z-[100] flex items-center overflow-hidden"
@@ -64,13 +67,17 @@ const ScrollingBanner = ({ html, speed = 20 }: { html: string; speed?: number })
         className="flex animate-marquee whitespace-nowrap min-w-max"
         style={{ animationDuration: `${speed}s` }}
       >
-        {[...Array(20)].map((_, i) => (
-          <div 
-            key={i} 
-            className="flex items-center"
-          >
-            <div className="font-medium inline-flex px-16" dangerouslySetInnerHTML={{ __html: html }} />
-            <span className="opacity-30 mx-4 text-xs">•</span>
+        {[...Array(10)].map((_, cycleIdx) => (
+          <div key={cycleIdx} className="flex items-center">
+            {messages.map((msg, msgIdx) => (
+              <div 
+                key={`${cycleIdx}-${msgIdx}`} 
+                className="flex items-center"
+              >
+                <div className="font-medium inline-flex px-8" dangerouslySetInnerHTML={{ __html: msg }} />
+                <span className="opacity-30 mx-4 text-xs">•</span>
+              </div>
+            ))}
           </div>
         ))}
       </div>
@@ -494,7 +501,13 @@ const AdminPanel = ({
   onSaveCoupon,
   onDeleteCoupon,
   onLogout,
-  onClose
+  onClose,
+  bannerMessages,
+  onSaveBannerMessages,
+  festivalPopupUrl,
+  festivalPopupActive,
+  festivalPopupTitle,
+  onSaveFestivalPopup
 }: { 
   products: Product[],
   categories: string[],
@@ -513,7 +526,13 @@ const AdminPanel = ({
   onSaveCoupon: (coupon: Coupon) => void,
   onDeleteCoupon: (id: string) => void,
   onLogout: () => void,
-  onClose: () => void 
+  onClose: () => void,
+  bannerMessages: string[],
+  onSaveBannerMessages: (messages: string[]) => void,
+  festivalPopupUrl: string,
+  festivalPopupActive: boolean,
+  festivalPopupTitle: string,
+  onSaveFestivalPopup: (data: { festivalPopupUrl: string, festivalPopupActive: boolean, festivalPopupTitle: string }) => Promise<void>
 }) => {
   const [activeTab, setActiveTab ] = useState<'products' | 'categories' | 'gallery' | 'settings' | 'coupons'>('products');
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
@@ -525,6 +544,25 @@ const AdminPanel = ({
   const [galleryImgToDelete, setGalleryImgToDelete] = useState<string | null>(null);
   const [tempBanner, setTempBanner] = useState(bannerText);
   const [tempSpeed, setTempSpeed] = useState(bannerSpeed);
+  const [tempMessages, setTempMessages] = useState<string[]>(bannerMessages || []);
+  const [isBannerSaving, setIsBannerSaving] = useState(false);
+
+  const [tempPopupUrl, setTempPopupUrl] = useState(festivalPopupUrl || '');
+  const [tempPopupActive, setTempPopupActive] = useState(festivalPopupActive || false);
+  const [tempPopupTitle, setTempPopupTitle] = useState(festivalPopupTitle || '');
+  const [isPopupSaving, setIsPopupSaving] = useState(false);
+
+  useEffect(() => {
+    if (festivalPopupUrl !== undefined) setTempPopupUrl(festivalPopupUrl);
+    if (festivalPopupActive !== undefined) setTempPopupActive(festivalPopupActive);
+    if (festivalPopupTitle !== undefined) setTempPopupTitle(festivalPopupTitle);
+  }, [festivalPopupUrl, festivalPopupActive, festivalPopupTitle]);
+
+  useEffect(() => {
+    if (bannerMessages) {
+      setTempMessages(bannerMessages);
+    }
+  }, [bannerMessages]);
 
   const [couponProductSearch, setCouponProductSearch] = useState('');
 
@@ -891,28 +929,79 @@ const AdminPanel = ({
           </div>
         ) : activeTab === 'settings' ? (
           <div className="max-w-2xl space-y-12 text-black">
-            <h3 className="font-serif text-3xl">General Settings</h3>
+            <h3 className="font-serif text-3xl font-light tracking-tight">General Settings</h3>
             
             <div className="space-y-8">
               <div>
-                <label className="text-[10px] uppercase tracking-[0.2em] font-bold block mb-4 opacity-70">Scrolling Banner Content</label>
-                <div 
-                  contentEditable
-                  onInput={(e) => {
-                    const newHtml = e.currentTarget.innerHTML;
-                    setTempBanner(newHtml);
-                    onSaveBanner(newHtml);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                    }
-                  }}
-                  suppressContentEditableWarning
-                  dangerouslySetInnerHTML={{ __html: bannerText }}
-                  className="w-full p-6 rounded-2xl border border-black/10 min-h-[120px] focus:outline-none focus:ring-1 focus:ring-black/20 bg-black text-white text-xs md:text-sm uppercase tracking-widest whitespace-pre-wrap overflow-y-auto leading-relaxed"
-                />
-                <p className="mt-4 text-[10px] text-muted-foreground italic font-medium">Text updates instantly on the site. Delete all text to hide the banner completely.</p>
+                <label className="text-[10px] uppercase tracking-[0.2em] font-bold block mb-4 opacity-70">Scrolling Banner Messages</label>
+                
+                <div className="space-y-3 mb-6">
+                  {tempMessages.map((msg, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className="flex-1 relative flex items-center">
+                        <span className="absolute left-4 text-xs font-mono opacity-40">#{index + 1}</span>
+                        <input
+                          type="text"
+                          value={msg}
+                          onChange={(e) => {
+                            const updated = [...tempMessages];
+                            updated[index] = e.target.value;
+                            setTempMessages(updated);
+                          }}
+                          placeholder="Type scrolling banner message here..."
+                          className="w-full pl-12 pr-4 py-3 bg-black/5 hover:bg-black/[0.08] focus:bg-white rounded-xl border border-black/5 focus:border-black/20 focus:outline-none text-xs font-medium tracking-wide transition-all"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          const updated = tempMessages.filter((_, idx) => idx !== index);
+                          setTempMessages(updated);
+                        }}
+                        title="Remove message"
+                        className="p-3 text-red-500 hover:bg-red-50 hover:text-red-700 rounded-xl transition-colors shrink-0"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {tempMessages.length === 0 && (
+                    <div className="p-8 text-center border border-dashed border-black/10 rounded-2xl">
+                      <p className="text-xs text-muted-foreground">No active banner messages. Add one below!</p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setTempMessages([...tempMessages, '']);
+                    }}
+                    className="w-full py-3 border border-dashed border-black/25 hover:border-black text-black rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all mt-2"
+                  >
+                    <Plus size={14} /> Add New Message
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={async () => {
+                      setIsBannerSaving(true);
+                      const cleaned = tempMessages.map(m => m.trim()).filter(Boolean);
+                      const finalMsg = cleaned.length > 0 ? cleaned : ['Welcome to Kathara Artisanal!'];
+                      setTempMessages(finalMsg);
+                      await onSaveBannerMessages(finalMsg);
+                      setIsBannerSaving(false);
+                    }}
+                    disabled={isBannerSaving}
+                    className="bg-black hover:bg-black/80 disabled:bg-black/50 text-white px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-md flex items-center gap-2"
+                  >
+                    {isBannerSaving ? 'Saving...' : 'Apply & Save Messages'}
+                  </button>
+                  {isBannerSaving && <span className="text-[10px] font-medium text-muted-foreground animate-pulse">Updating scrolling marquee...</span>}
+                </div>
+
+                <p className="mt-4 text-[10px] text-muted-foreground italic font-medium leading-relaxed">
+                  Enter one or multiple distinct messages. Once saved, they will rotate continuously at the very top of the storefront, beautifully separated by bullets.
+                </p>
               </div>
 
               <div className="pt-8 border-t border-black/5">
@@ -940,6 +1029,122 @@ const AdminPanel = ({
                     className="flex-1 h-1.5 bg-black/5 rounded-lg appearance-none cursor-pointer accent-black"
                   />
                   <span className="text-[9px] font-bold uppercase tracking-widest opacity-40">Slow</span>
+                </div>
+              </div>
+
+              <div className="pt-8 border-t border-black/5 space-y-6">
+                <div>
+                  <h4 className="text-xs uppercase tracking-[0.2em] font-bold block opacity-70">Festival / Occasion Pop-up Settings</h4>
+                  <p className="text-[10px] text-muted-foreground mt-1">Configure an immersive full-screen visual pop-up shown to visitors when they land on the site.</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-[0.2em] font-bold block mb-2 opacity-75">Pop-up Title / Event Name</label>
+                    <input
+                      type="text"
+                      value={tempPopupTitle}
+                      onChange={(e) => setTempPopupTitle(e.target.value)}
+                      placeholder="e.g. Eid Mubarak Special, Summer Celebration 🌸"
+                      className="w-full px-4 py-3 bg-black/5 hover:bg-black/[0.08] focus:bg-white rounded-xl border border-black/5 focus:border-black/20 focus:outline-none text-xs font-semibold tracking-wide transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase tracking-[0.2em] font-bold block mb-2 opacity-75">Popup Image URL</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={tempPopupUrl}
+                        onChange={(e) => setTempPopupUrl(e.target.value)}
+                        placeholder="Paste image link here (e.g. https://images.pexels.com/...)"
+                        className="flex-1 px-4 py-3 bg-black/5 hover:bg-black/[0.08] focus:bg-white rounded-xl border border-black/5 focus:border-black/20 focus:outline-none text-xs font-medium transition-all"
+                      />
+                      {tempPopupUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTempPopupUrl('');
+                            setTempPopupActive(false);
+                          }}
+                          className="px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-semibold py-3 transition-colors uppercase tracking-widest shrink-0"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 py-2 bg-brand-cream/40 px-4 rounded-xl border border-black/5">
+                    <input
+                      type="checkbox"
+                      id="popupActive"
+                      checked={tempPopupActive}
+                      onChange={(e) => setTempPopupActive(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black accent-black"
+                    />
+                    <label htmlFor="popupActive" className="text-[10px] uppercase tracking-widest font-bold select-none cursor-pointer">
+                      Activate Festival Pop-up for Visitors
+                    </label>
+                  </div>
+
+                  {tempPopupUrl && (
+                    <div className="border border-black/10 rounded-2xl p-4 bg-black/5 space-y-2">
+                      <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60">Image Preview</p>
+                      <div className="aspect-[4/3] rounded-xl overflow-hidden bg-brand-beige relative max-h-[220px]">
+                        <img 
+                          src={tempPopupUrl} 
+                          alt="Festival Popup Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = "https://images.unsplash.com/photo-1594122230689-48690024be3a?q=80&w=600";
+                          }}
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-4 pt-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsPopupSaving(true);
+                        await onSaveFestivalPopup({
+                          festivalPopupUrl: tempPopupUrl.trim(),
+                          festivalPopupActive: tempPopupActive,
+                          festivalPopupTitle: tempPopupTitle.trim()
+                        });
+                        setIsPopupSaving(false);
+                      }}
+                      disabled={isPopupSaving}
+                      className="bg-black hover:bg-black/80 disabled:bg-black/50 text-white px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-md"
+                    >
+                      {isPopupSaving ? 'Saving...' : 'Apply & Save Pop-up'}
+                    </button>
+
+                    {(festivalPopupUrl || festivalPopupTitle) && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsPopupSaving(true);
+                          setTempPopupUrl('');
+                          setTempPopupActive(false);
+                          setTempPopupTitle('');
+                          await onSaveFestivalPopup({
+                            festivalPopupUrl: '',
+                            festivalPopupActive: false,
+                            festivalPopupTitle: ''
+                          });
+                          setIsPopupSaving(false);
+                        }}
+                        disabled={isPopupSaving}
+                        className="border border-black/10 hover:border-black text-black px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
+                      >
+                        Delete Pop-up Image / Reset
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1111,11 +1316,31 @@ export default function App() {
   const [galleryImagesData, setGalleryImagesData] = useState<{id: string, url: string}[]>([]);
   const [galleryImages, setGalleryImages] = useState<string[]>(INITIAL_GALLERY);
   const [bannerText, setBannerText] = useState('Special Welcome Offer: 5% Discount for All First-Time Customers | Use code FAST26 at checkout!');
+  const [bannerMessages, setBannerMessages] = useState<string[]>([
+    'Special Welcome Offer: 5% Discount for All First-Time Customers',
+    'Use code FAST26 at checkout!'
+  ]);
   const [bannerSpeed, setBannerSpeed] = useState(25);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [cartItems, setCartItems] = useState<Product[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  const [festivalPopupUrl, setFestivalPopupUrl] = useState('');
+  const [festivalPopupActive, setFestivalPopupActive] = useState(false);
+  const [festivalPopupTitle, setFestivalPopupTitle] = useState('');
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+
+  useEffect(() => {
+    if (festivalPopupActive && festivalPopupUrl) {
+      const hasSeen = localStorage.getItem(`kathara_popup_seen_${festivalPopupUrl}`);
+      if (!hasSeen) {
+        setIsPopupOpen(true);
+      }
+    } else {
+      setIsPopupOpen(false);
+    }
+  }, [festivalPopupActive, festivalPopupUrl]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -1153,8 +1378,18 @@ export default function App() {
     const unsubConfig = onSnapshot(doc(db, 'config', 'general'), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        if (data.bannerText !== undefined) setBannerText(data.bannerText);
         if (data.bannerSpeed !== undefined) setBannerSpeed(data.bannerSpeed);
+        if (data.bannerMessages !== undefined) {
+          setBannerMessages(data.bannerMessages);
+          setBannerText(data.bannerMessages.join(' | '));
+        } else if (data.bannerText !== undefined) {
+          setBannerText(data.bannerText);
+          const splitMsg = data.bannerText.split('|').map((s: string) => s.trim()).filter(Boolean);
+          setBannerMessages(splitMsg.length > 0 ? splitMsg : ['Welcome to Kathara Artisanal!']);
+        }
+        if (data.festivalPopupUrl !== undefined) setFestivalPopupUrl(data.festivalPopupUrl);
+        if (data.festivalPopupActive !== undefined) setFestivalPopupActive(data.festivalPopupActive);
+        if (data.festivalPopupTitle !== undefined) setFestivalPopupTitle(data.festivalPopupTitle);
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, 'config/general'));
 
@@ -1361,10 +1596,45 @@ export default function App() {
     }
   };
 
+  const onSaveBannerMessages = async (messages: string[]) => {
+    const path = 'config/general';
+    try {
+      const text = messages.join(' | ');
+      setBannerMessages(messages);
+      setBannerText(text);
+      await setDoc(doc(db, 'config', 'general'), { 
+        bannerMessages: messages, 
+        bannerText: text 
+      }, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  };
+
   const onSaveBannerSpeed = async (speed: number) => {
     const path = 'config/general';
     try {
       await setDoc(doc(db, 'config', 'general'), { bannerSpeed: speed }, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  };
+
+  const onSaveFestivalPopup = async (data: {
+    festivalPopupUrl: string;
+    festivalPopupActive: boolean;
+    festivalPopupTitle: string;
+  }) => {
+    const path = 'config/general';
+    try {
+      setFestivalPopupUrl(data.festivalPopupUrl);
+      setFestivalPopupActive(data.festivalPopupActive);
+      setFestivalPopupTitle(data.festivalPopupTitle);
+      await setDoc(doc(db, 'config', 'general'), { 
+        festivalPopupUrl: data.festivalPopupUrl,
+        festivalPopupActive: data.festivalPopupActive,
+        festivalPopupTitle: data.festivalPopupTitle
+      }, { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     }
@@ -1380,6 +1650,79 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
+      {/* Festival/Occasion Pop-up Modal */}
+      <AnimatePresence>
+        {isPopupOpen && festivalPopupUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[1000] flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 30, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 30, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 280 }}
+              className="relative max-w-sm w-full bg-white text-black shadow-2xl rounded-[32px] overflow-hidden border border-black/5"
+            >
+              {/* Close button X */}
+              <button
+                onClick={() => {
+                  setIsPopupOpen(false);
+                  localStorage.setItem(`kathara_popup_seen_${festivalPopupUrl}`, 'true');
+                }}
+                className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/45 text-white hover:bg-black/75 hover:scale-105 transition-all outline-none border border-white/10"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+
+              <div className="relative aspect-[3/4] w-full bg-brand-cream overflow-hidden">
+                <img 
+                  src={festivalPopupUrl} 
+                  alt={festivalPopupTitle || "Special Festival Event"} 
+                  className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                  referrerPolicy="no-referrer"
+                />
+                
+                {/* Gradient and text overlays */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent flex flex-col justify-end p-8 text-left">
+                  {festivalPopupTitle && (
+                    <h3 className="font-serif text-2xl md:text-3xl text-white tracking-wide leading-tight mb-2 font-light">
+                      {festivalPopupTitle}
+                    </h3>
+                  )}
+                  <p className="text-[9px] text-white/70 uppercase tracking-[0.2em] font-semibold mb-6">Special Event Announcement</p>
+                  
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setIsPopupOpen(false);
+                        localStorage.setItem(`kathara_popup_seen_${festivalPopupUrl}`, 'true');
+                        document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="flex-1 bg-white hover:bg-brand-beige text-black text-[10px] font-bold uppercase tracking-widest py-4 rounded-full text-center transition-all shadow-md hover:scale-[102%]"
+                    >
+                      Shop Collection
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsPopupOpen(false);
+                        localStorage.setItem(`kathara_popup_seen_${festivalPopupUrl}`, 'true');
+                      }}
+                      className="border border-white/20 hover:border-white text-white text-[10px] font-bold uppercase tracking-widest py-4 px-5 rounded-full text-center transition-all bg-white/5 hover:bg-white/10"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Top Discount Banner */}
       <ScrollingBanner html={bannerText} speed={bannerSpeed} />
 
@@ -1979,6 +2322,12 @@ export default function App() {
             onSaveBannerSpeed={onSaveBannerSpeed}
             onLogout={logout}
             onClose={() => setIsAdminOpen(false)}
+            bannerMessages={bannerMessages}
+            onSaveBannerMessages={onSaveBannerMessages}
+            festivalPopupUrl={festivalPopupUrl}
+            festivalPopupActive={festivalPopupActive}
+            festivalPopupTitle={festivalPopupTitle}
+            onSaveFestivalPopup={onSaveFestivalPopup}
           />
         )}
       </AnimatePresence>
@@ -1994,7 +2343,7 @@ export default function App() {
           >
             <div className="aspect-[4/5] bg-brand-beige rounded-[40px] overflow-hidden rotate-2">
               <img 
-                src="https://picsum.photos/seed/kathara-about/800/1000" 
+                src="https://images.pexels.com/photos/37799721/pexels-photo-37799721.jpeg" 
                 alt="Process" 
                 className="w-full h-full object-cover -rotate-2 scale-110"
                 referrerPolicy="no-referrer"
